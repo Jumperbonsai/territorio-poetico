@@ -1,0 +1,24 @@
+{
+  "name": "plantwave-3d-poetry",
+  "version": "1.0.0",
+  "description": "Proyecto interactivo 3D de transducción poética de grabaciones Plantwave",
+  "main": "src/main.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "serve": "http-server public -p 8080"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "@tweenjs/tween.js": "^21.0.0",
+    "tone": "^14.7.77"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "http-server": "^14.1.1"
+  },
+  "keywords": ["3D", "audio", "poetry", "plantwave", "interactive", "threejs"],
+  "author": "",
+  "license": "MIT"
+}

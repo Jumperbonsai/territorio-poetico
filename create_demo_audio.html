@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generador de Audio de Demostración</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Generador de Audio de Demostración Plantwave</h1>
+    <p>Este archivo genera audios sintéticos realistas que simulan las grabaciones Plantwave para cada planta.</p>
+    
+    <button onclick="generateAllAudio()">Generar Todos los Audios</button>
+    <button onclick="generateAudio('helecho')">Solo Helecho</button>
+    <button onclick="generateAudio('kalanchoe')">Solo Kalanchoe</button>
+    <button onclick="generateAudio('lavanda')">Solo Lavanda</button>
+    <button onclick="generateAudio('clavel_aire')">Solo Clavel del Aire</button>
+    
+    <div id="status" class="status">
+        Listo para generar audios de demostración.
+    </div>
+
+    <script>
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function generatePlantAudio(plantName, characteristics) {
+            return new Promise((resolve) => {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const duration = 15; // 15 segundos
+                const sampleRate = audioContext.sampleRate;
+                const bufferLength = sampleRate * duration;
+                const audioBuffer = audioContext.createBuffer(1, bufferLength, sampleRate);
+                
+                const channelData = audioBuffer.getChannelData(0);
+                
+                // Generar audio bioelectrico realista
+                for (let i = 0; i < bufferLength; i++) {
+                    const t = i / sampleRate;
+                    let sample = 0;
+                    
+                    // Osciladores principales (simulando bioelectricidad)
+                    characteristics.frequencies.forEach((freq, index) => {
+                        const amplitude = characteristics.amplitudes[index];
+                        const phase = Math.PI * 2 * freq * t;
+                        
+                        // Onda base
+                        sample += Math.sin(phase) * amplitude;
+                        
+                        // Modulación orgánica
+                        const modFreq = freq * 0.1;
+                        const modulation = Math.sin(Math.PI * 2 * modFreq * t) * 0.3;
+                        sample += Math.sin(phase * (1 + modulation)) * amplitude * 0.3;
+                    });
+                    
+                    // Ruido orgánico (simulando variaciones naturales)
+                    const organicNoise = (Math.random() - 0.5) * 0.02;
+                    const lowFreqVariation = Math.sin(t * 0.7) * Math.sin(t * 1.3) * 0.01;
+                    
+                    sample += organicNoise + lowFreqVariation;
+                    
+                    // Envolvente suave para evitar clicks
+                    let envelope = 1;
+                    if (t < 0.1) envelope = t / 0.1;
+                    if (t > duration - 0.1) envelope = (duration - t) / 0.1;
+                    
+                    channelData[i] = sample * envelope * characteristics.masterVolume;
+                }
+                
+                // Convertir a WAV y descargar
+                const wavBuffer = audioBufferToWav(audioBuffer);
+                const blob = new Blob([wavBuffer], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `${plantName}.wav`;
+                link.click();
+                
+                URL.revokeObjectURL(url);
+                resolve();
+            });
+        }
+
+        async function generateAudio(plantName) {
+            updateStatus(`Generando audio para ${plantName}...`);
+            
+            const plantCharacteristics = {
+                'helecho': {
+                    frequencies: [35, 52.5, 70, 105],
+                    amplitudes: [0.08, 0.06, 0.04, 0.02],
+                    masterVolume: 0.6
+                },
+                'kalanchoe': {
+                    frequencies: [80, 160, 320, 480],
+                    amplitudes: [0.12, 0.08, 0.04, 0.02],
+                    masterVolume: 0.7
+                },
+                'lavanda': {
+                    frequencies: [120, 194, 314, 508],
+                    amplitudes: [0.06, 0.04, 0.03, 0.02],
+                    masterVolume: 0.5
+                },
+                'clavel_aire': {
+                    frequencies: [200, 283, 400, 566],
+                    amplitudes: [0.04, 0.03, 0.02, 0.015],
+                    masterVolume: 0.4
+                }
+            };
+            
+            await generatePlantAudio(plantName, plantCharacteristics[plantName]);
+            updateStatus(`✅ Audio generado para ${plantName}`);
+        }
+
+        async function generateAllAudio() {
+            const plants = ['helecho', 'kalanchoe', 'lavanda', 'clavel_aire'];
+            
+            for (const plant of plants) {
+                await generateAudio(plant);
+                await new Promise(resolve => setTimeout(resolve, 500)); // Pausa entre generaciones
+            }
+            
+            updateStatus('🎉 Todos los audios generados correctamente. Colócalos en la carpeta assets/audio/');
+        }
+
+        // Función para convertir AudioBuffer a WAV
+        function audioBufferToWav(buffer) {
+            const length = buffer.length;
+            const arrayBuffer = new ArrayBuffer(44 + length * 2);
+            const view = new DataView(arrayBuffer);
+            
+            // WAV header
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+            
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + length * 2, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, buffer.sampleRate, true);
+            view.setUint32(28, buffer.sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, length * 2, true);
+            
+            // PCM data
+            const channelData = buffer.getChannelData(0);
+            let offset = 44;
+            for (let i = 0; i < length; i++) {
+                const sample = Math.max(-1, Math.min(1, channelData[i]));
+                view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+                offset += 2;
+            }
+            
+            return arrayBuffer;
+        }
+    </script>
+</body>
+</html>

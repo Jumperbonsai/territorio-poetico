@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Plantwave</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        
+        #console {
+            background: #000;
+            color: #0f0;
+            font-family: monospace;
+            padding: 15px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Debug Plantwave Territory</h1>
+    
+    <div id="status" class="status info">Iniciando diagnóstico...</div>
+    
+    <div id="tests">
+        <h3>Tests de Componentes:</h3>
+        <div id="test-results"></div>
+    </div>
+    
+    <div id="console-container">
+        <h3>Console Log:</h3>
+        <div id="console"></div>
+    </div>
+    
+    <script type="module">
+        const statusDiv = document.getElementById('status');
+        const consoleDiv = document.getElementById('console');
+        const testResults = document.getElementById('test-results');
+        
+        function log(message, type = 'info') {
+            console.log(message);
+            consoleDiv.textContent += `[${new Date().toLocaleTimeString()}] ${message}\n`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        function addTestResult(test, success, message) {
+            const div = document.createElement('div');
+            div.className = `status ${success ? 'success' : 'error'}`;
+            div.textContent = `${test}: ${success ? '✅' : '❌'} ${message}`;
+            testResults.appendChild(div);
+        }
+        
+        // Interceptar errores
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            log(`ERROR: ${msg} at ${url}:${lineNo}:${columnNo}`, 'error');
+            return false;
+        };
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            log(`PROMISE REJECTION: ${event.reason}`, 'error');
+        });
+        
+        async function runDiagnostic() {
+            log('🔍 Iniciando diagnóstico completo...');
+            
+            // Test 1: Three.js
+            try {
+                const { default: THREE } = await import('three');
+                addTestResult('Three.js Import', true, 'Cargado correctamente');
+                log('✅ Three.js importado');
+            } catch (error) {
+                addTestResult('Three.js Import', false, error.message);
+                log(`❌ Error importando Three.js: ${error.message}`);
+                return;
+            }
+            
+            // Test 2: Módulos principales
+            const modules = [
+                { name: 'PlantSceneManager', path: './src/core/PlantSceneManager.js' },
+                { name: 'EnvironmentManager', path: './src/core/EnvironmentManager.js' },
+                { name: 'PantheonBuilder', path: './src/core/PantheonBuilder.js' },
+                { name: 'AudioPoetrySystem', path: './src/audio/AudioPoetrySystem.js' },
+                { name: 'CameraController', path: './src/core/CameraController.js' },
+                { name: 'UIManager', path: './src/ui/UIManager.js' }
+            ];
+            
+            for (const module of modules) {
+                try {
+                    await import(module.path);
+                    addTestResult(module.name, true, 'Módulo cargado');
+                    log(`✅ ${module.name} importado`);
+                } catch (error) {
+                    addTestResult(module.name, false, error.message);
+                    log(`❌ Error importando ${module.name}: ${error.message}`);
+                }
+            }
+            
+            // Test 3: Intentar inicializar la app
+            try {
+                const { default: THREE } = await import('three');
+                log('🎬 Intentando crear escena básica...');
+                
+                const scene = new THREE.Scene();
+                const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                const renderer = new THREE.WebGLRenderer();
+                
+                addTestResult('Escena 3D Básica', true, 'Creada correctamente');
+                log('✅ Escena 3D básica creada');
+                
+            } catch (error) {
+                addTestResult('Escena 3D Básica', false, error.message);
+                log(`❌ Error creando escena: ${error.message}`);
+            }
+            
+            // Test 4: WebGL
+            try {
+                const canvas = document.createElement('canvas');
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    addTestResult('WebGL Support', true, 'WebGL disponible');
+                    log('✅ WebGL soportado');
+                } else {
+                    throw new Error('WebGL no disponible');
+                }
+            } catch (error) {
+                addTestResult('WebGL Support', false, error.message);
+                log(`❌ WebGL error: ${error.message}`);
+            }
+            
+            log('🔍 Diagnóstico completado');
+            statusDiv.textContent = 'Diagnóstico completado - Revisa los resultados arriba';
+            statusDiv.className = 'status success';
+        }
+        
+        // Ejecutar diagnóstico
+        runDiagnostic().catch(error => {
+            log(`❌ Error fatal en diagnóstico: ${error.message}`);
+            statusDiv.textContent = `Error fatal: ${error.message}`;
+            statusDiv.className = 'status error';
+        });
+    </script>
+</body>
+</html>
